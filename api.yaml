@@ -1,0 +1,249 @@
+openapi: 3.0.1
+info:
+  title: GreekSchools Open Access Data Service API
+  version: 0.0.1
+servers:
+  - url: https://6012.greekschools.eu/api/{basePath} # TODO: check
+    variables:
+      basePath:
+        default: v1
+security:
+  - bearerAuth: []
+paths:
+  /latest:
+    get:
+      tags:
+      - versions
+      summary: Get the latest available published version
+      responses:
+        "200":
+          description: The latest version
+          content:
+            application/json:
+              schema:
+                type: string
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+          
+  /versions:
+    get:
+      tags:
+      - versions
+      summary: Get the list of available published units versions
+      responses:
+        "200":
+          description: The list of available versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  type: string
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+  /units: # TODO
+    get:
+      tags:
+      - units
+      summary: Get the list of published units of the project
+      parameters:
+        - name: v
+          in: query
+          example: 20230623
+          schema:
+            type: string
+        - name: target
+          in: query
+          example: xxxx-yyyy-tttt-zzzz
+          schema:
+            type: string
+        - name: offset
+          in: query
+          example: 0
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          example: 10
+          schema:
+            type: integer
+        
+      responses:
+        "200":
+          description: get all the working units
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/unit"
+                  links:
+                    $ref: "#/components/schemas/links"
+                  count:
+                    type: integer
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+  /units/{id}: # TODO
+    parameters:
+      - name: v
+        in: query
+        example: 20230623
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - units
+      responses:
+        "200":
+          description: get the unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/unit"
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+  /status:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status"
+components:
+  schemas:
+      # TODO: define error structure to be returned on 500
+      idObj:
+        type: object
+        required:
+          - id
+        properties:
+          id:
+            type: string
+            format: uuid
+      error:
+        type: object
+        properties:
+            timestamp:
+              type: string
+              format: date-time
+            message:
+              type: string
+            path:
+              type: string
+              example: /api/v1/units/
+      unitRequest:
+        type: object
+        required:
+          - title
+          - children
+          - createdAt
+        properties:
+          createdAt:
+            type: string
+          title:
+            type: string
+          target: 
+            type: string
+            format: uuid
+          metadata:
+            type: array
+            items:
+              $ref: "#/components/schemas/unit" # TODO: check is this should be a string array
+          children: 
+            type: array
+            items:
+              type: string
+              format: uuid
+          ranges:
+            type: array
+            items:
+              $ref: "#/components/schemas/range"
+          creator: 
+            type: string
+            description: User id and name/label of the creator
+          dsl:
+            $ref: "#/components/schemas/dsl"
+            description: When undefined this is a container unit
+      unit:
+        allOf:
+          - $ref: "#/components/schemas/idObj"
+          - $ref: "#/components/schemas/unitRequest" 
+      range:
+        type: object
+        properties:
+          lineStart:
+            type: number
+          lineEnd:
+            type: number
+          colStart:
+            type: number
+          colEnd:
+            type: number 
+      dsl:
+        type: object
+        required:
+          - content
+          - language
+        properties:
+          content:
+            type: string
+            description: The code in the chosen language
+          language:
+            type: string
+            description: The dsl language id
+            example: gs-lit-app
+      links:
+        type: object
+        properties:
+          self:
+            type: string
+          prev:
+            type: string
+          next:
+            type: string
+          last:
+            type: string
+          first:
+            type: string
+      status:
+        type: object
+        required:
+          - status
+          - version
+        properties:
+          status:
+            type: string
+            enum:
+              - running
+          version:
+            type: string
